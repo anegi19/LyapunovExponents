@@ -56,22 +56,20 @@ given that there are Ly sites in the supercell and
 =#
 
 
-@everywhere function assign_M(M::Array{Float64,2},J_y::Array{Complex{Float64},2},Ly::Int64,p::Int64)
+@everywhere function assign_M(M::Array{T,2} where T<:Union{Float64,Complex},J_y::Array{T,2} where T<:Union{Float64,Complex,Int64},Ly::Int64,p::Int64)
+    𝐈=spdiagm(0=> ones(Ly))
 
-    𝐌=Array{Complex{Float64},2}
-    𝐈=Diagonal(ones(Ly))
+    𝐈_up= spdiagm(1 => ones(Ly-1))
+    𝐈_down= spdiagm(-1 => ones(Ly-1))
 
-    𝐈_up= diagm(1 => ones(Ly-1))
-    𝐈_down= diagm(-1 => ones(Ly-1))
-
-    𝐌= kron(𝐈,M)+ kron(𝐈_up,J_y')+kron(𝐈_down,J_y)
+    𝐌= kron(𝐈,copy(M))+ kron(𝐈_up,copy(J_y'))+kron(𝐈_down,copy(J_y))
 
     if(p==1) #pbc=ON
-        𝐈_PBCup = diagm((Ly-1) => ones(1))
-        𝐈_PBCdown = diagm(-(Ly-1) => ones(1))
-        𝐌+=kron(𝐈_PBCup,J_y)+kron(𝐈_PBCdown,J_y')
+        𝐈_PBCup = spdiagm((Ly-1) => ones(1))
+        𝐈_PBCdown = spdiagm(-(Ly-1) => ones(1))
+        𝐌+=(kron(𝐈_PBCup,copy(J_y))+kron(𝐈_PBCdown,copy(J_y')))
     end
-    return(𝐌)
+    return(Matrix(𝐌))
 end
 
 
