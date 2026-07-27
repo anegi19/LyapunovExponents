@@ -6,9 +6,9 @@ The calculation is parallelized using Julia's `Distributed.pmap`, which dynamica
 
 Each job corresponds to a single parameter set:
 
-\[
+$
 (m, W, L_y)
-\]
+$
 
 where:
 - `m` : system parameter
@@ -17,9 +17,9 @@ where:
 
 The longitudinal size is defined as:
 
-\[
+$
 N_x = \text{scale} \times L_y
-\]
+$
 
 ---
 
@@ -191,9 +191,9 @@ bin/
 
 contains:
 
-\[
+$
 \lambda_1,\lambda_2,\dots,\lambda_{2r}
-\]
+$
 
 for the corresponding `(m,W,Ly)` parameter set.
 
@@ -459,9 +459,9 @@ bin/
 
 contains:
 
-\[
+$
 \lambda_1,\lambda_2,\dots,\lambda_{2r}
-\]
+$
 
 for the corresponding `(m,W,Ly)` parameter set.
 
