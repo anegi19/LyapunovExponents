@@ -258,9 +258,9 @@ Computes the Lyapunov spectrum using:
 
 Defines model-specific matrices:
 
-\[
+`
 J_x, J_y, M
-\]
+`
 
 and numerical parameters.
 
@@ -276,9 +276,9 @@ The calculation is parallelized using Julia's `Distributed.pmap`, which dynamica
 
 Each job corresponds to a single parameter set:
 
-\[
+`
 (m, W, L_y)
-\]
+`
 
 where:
 - `m` : system parameter
@@ -287,9 +287,7 @@ where:
 
 The longitudinal size is defined as:
 
-\[
-N_x = \text{scale} \times L_y
-\]
+$N_x = scale \times L_y$
 
 ---
 
@@ -537,8 +535,9 @@ and numerical parameters.
 ---
 
 # Authors
- Ankita Negi^1, Vatsal Dwivedi^1
- [1] Institute of Theoretical Physics, University of Cologne
+ Ankita Negi [1], Vatsal Dwivedi [1]
+
+ [1] Institute of Theoretical Physics, University of Cologne (2019)
 
 # References
 
