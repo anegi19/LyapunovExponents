@@ -537,7 +537,8 @@ and numerical parameters.
 ---
 
 # Authors
- Ankita Negi, Vatsal Dwivedi
+ Ankita Negi^1, Vatsal Dwivedi^1
+ [1] Institute of Theoretical Physics, University of Cologne
 
 # References
 
