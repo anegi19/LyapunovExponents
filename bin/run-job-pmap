@@ -8,7 +8,7 @@ echo -e "create job list? (y/n)"
 read ans 
 if [ "$ans" == 'y' ]
    then
-   julia "/home/anegi/MyLyapunovProject/Project_updated_3/ssh/create_jobs.jl"
+   julia "/home/anegi/MyLyapunovProject/LyapunovExponents/job/create_jobs.jl"
 fi
 
 echo "Should I update the available computer list? (y/n)"
