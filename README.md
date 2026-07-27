@@ -2,6 +2,7 @@
 
 A Julia package for calculating Lyapunov spectra of disordered lattice systems using transfer matrix methods.
 
+
 The calculation is parallelised using Julia's `Distributed.pmap`, which dynamically distributes independent jobs among available workers.
 
 Each job corresponds to a single parameter set:
@@ -21,6 +22,11 @@ The longitudinal system size is defined as:
 \[
 N_x = \mathrm{scale} \times L_y
 \]
+
+
+<p align="center">
+  <img src="imgs/QWZ_model.png" width="600">
+</p>
 
 ---
 
@@ -285,17 +291,12 @@ and numerical parameters.
 ---
 
 # Authors
-<<<<<<< HEAD
- Ankita Negi^1^, Vatsal Dwivedi^1^
- [1] Institute of Theoretical Physics, University of Cologne
-=======
 
 Ankita Negi, Vatsal Dwivedi
 
 Institute of Theoretical Physics, University of Cologne (2019)
 
 ---
->>>>>>> 52e594b4d4706f5140c16ce4cfcffd656242ed31
 
 # References
 
