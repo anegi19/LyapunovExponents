@@ -1,3 +1,8 @@
+name = "LyapunovExponents"
+uuid = "PUT-YOUR-UUID-HERE"
+authors = ["Ankita Negi"]
+version = "0.1.0"
+
 [deps]
 ClusterManagers = "34f1f09b-3a8b-5176-ab39-66d58a4d544e"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"

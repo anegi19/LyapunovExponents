@@ -1,114 +1,82 @@
-#-------------------------------------- FUNCTIONS to calculate Lyapunovs------------------------------------------------------------------------------------
+
+"""
+    get_LyapunovList(M, V, Xi, Wt, E, Ly, Nx, Wd, q)
+
+Calculate the Lyapunov spectrum of a disordered two-dimensional system using
+the transfer matrix method.
+
+The system is divided into `Nx` longitudinal supercells, each containing `Ly`
+sites in the transverse direction. For each supercell, diagonal disorder is
+added to the onsite Hamiltonian, the Green's function is calculated, and the
+transfer matrix is constructed in the singular-value basis of the hopping
+matrix.
+
+The Lyapunov exponents are obtained by multiplying transfer matrices along the
+longitudinal direction and periodically applying QR decompositions for numerical
+stability.
+
+# Arguments
+
+- `M::Array{ComplexF64,2}`:
+    Clean onsite Hamiltonian matrix of one supercell.
+
+- `V::Array{ComplexF64,2}`:
+    Left singular-vector matrix from the SVD of the hopping matrix.
+
+- `Xi::Array{ComplexF64,2}`:
+    Singular-value matrix of the hopping matrix. The transfer matrix size is
+    determined by `r = size(Xi,1)`.
+
+- `Wt::Array{ComplexF64,2}`:
+    Right singular-vector matrix from the SVD of the hopping matrix.
+
+- `E::Float64`:
+    Energy at which the Green's function is evaluated.
+
+- `Ly::Int64`:
+    Number of sites in the transverse direction.
+
+- `Nx::Int64`:
+    Number of supercells in the longitudinal direction.
+
+- `Wd::Float64`:
+    Disorder strength. The onsite disorder is sampled from a uniform
+    distribution in the interval `[-Wd/2, Wd/2]`.
+
+- `q::Int64`:
+    Number of transfer matrices multiplied before each QR decomposition.
+
+# Returns
+
+- `λ_list`:
+    Array containing the Lyapunov exponents
+    `[λ₁, λ₂, ..., λ₂r]`.
+
+- `Q_prev`:
+    Final orthogonal matrix from the QR decomposition.
+
+- `R`:
+    Final upper triangular matrix from the QR decomposition.
+
+# Notes
+
+The Green's function is calculated as:
+
+    G = (E*I - M)^(-1)
+
+The transfer matrix is constructed from the projected Green's function blocks:
+
+    Gvv = V' * G * V
+    Gvw = Wt * G * V
+    Gwv = V' * G * Wt'
+    Gww = Wt * G * Wt'
+
+Block QR decomposition is used to avoid numerical overflow during long
+transfer-matrix multiplication.
+"""
 
 
-#-----------------------------------------------------------------------------------------------------------------------
-#=
-Function to construct and return the Hopping matrix 𝐉 and its Singular Value Decomposition,
-given that there are Ly sites in the supercell and
-𝐉 = BLOCK_Matrix( J_x, repeated N times )
---------------------------------------------------
-If SVD of J_x = v.Ξ.w'
-
-(where Ξ = diagonal matrix with Singular Values of J_x along its diagonal in descending order)
-
-SVD of 𝐉 = V.Xi.Wt
-
-such that:
-
-V= BLOCK_Matrix(v, repeated N times)
-Xi= BLOCK_Matrix(Ξ, repeated N times)
-Wt= BLOCK_Matrix(w', repeated N times)
----------------------------------------------------
-
-=#
-
-
-
-
-
-@everywhere function assign_J(J_x::Array{Complex{Float64},2},Ly::Int64)
-
-    𝐈= convert(Array{Complex{Float64},2}, Matrix(Diagonal(ones(Ly))))
-
-    F= svd(J_x)
-    v=F.U[:,1]
-    w=F.V[:,1]
-
-    Xi=𝐈
-    𝐕=kron(𝐈,v)
-    𝐖t=kron(𝐈,w')
-    𝐉=kron(𝐈,J_x)
-
-    return(𝐉,𝐕,Xi,𝐖t)
-
-end
-
-
-#-----------------------------------------------------------------------------------------------------------------------
-
-
-#=
-Function to construct and return the 'clean' on-site matrix 𝐌,
-given that there are Ly sites in the supercell and
-
-𝐉 = BLOCK_Matrix( M, J_y', J_y : repeated Ly times along 0,-1 and 1 diagonal respectively)
-
-=#
-
-
-@everywhere function assign_M(M::Array{Complex{Float64},2},J_y::Array{Complex{Float64},2},Ly::Int64,p::Int64)
-
-    𝐌=Array{Complex{Float64},2}
-    𝐈=Diagonal(ones(Ly))
-
-    𝐈_up= diagm(1 => ones(Ly-1))
-    𝐈_down= diagm(-1 => ones(Ly-1))
-
-    𝐌= kron(𝐈,M)+ kron(𝐈_up,J_y')+kron(𝐈_down,J_y)
-
-    if(p==1) #pbc=ON
-        𝐈_PBCup = diagm((Ly-1) => ones(1))
-        𝐈_PBCdown = diagm(-(Ly-1) => ones(1))
-        𝐌+=kron(𝐈_PBCup,J_y)+kron(𝐈_PBCdown,J_y')
-    end
-    return(𝐌)
-end
-
-
-#=
-
-Function to calculate and store (1) λ_list (Lyapunov spectrum) (2)Last value of Qprev at a given value of (m,W) of a 2D disordered system
-with (x,y) dimensions = (Nx,Ly)
-
------------------------------------------------------------------------------------------------------------------------
-Inputs:
-                           M :: Array{Float64},2},Array{Complex{Float64},2} ::On site (clean) matrix of a supercell
-           V,Xi,Wt :: Array{Float64},2},Array{Complex{Float64},2}::SVD OF 𝐉
-         Ly :: Int64                                       ::Number of sites in a supercell (transverse length of the system)
-         Nx :: Int64                                       ::Number of supercells (longitudinal length of the system)
-         Wd :: Float64                                     ::Disorder Strength
-   dir_name :: String                                      ::Directory to store the Lyapunov spectrum file, usually the current working directory (each file is refered to by its jobID )
-          q :: Int64                                       ::Number of QR decomposition steps to skip
-       jobID:: Int64                                       ::ID corresponding to each job. Here 1 job corresponds to 1 (m,W,Ly) set
-------------------------------------------------------------------------------------------------------------------------
-Outputs: doesn't return anything
-
-  λ_list :: Array{Float64,1}                            ::[ λ_1, λ_2,...λ_2r]  in descending order
-  last value of R :: Array{Float64,1}                            ::[ λ_1, λ_2,...λ_2r]  in descending order
--------------------------------------------------------------------------------------------------------------------------
-
-
-=#
-
-
-# Standard typecasting for matrices: Everything should be a complex matrix
-@everywhere function stdform(mat)
-    convert(Array{Complex{Float64},2},Matrix(mat))
-end
-
-
-
-@everywhere function get_LyapunovList(M::Array{Complex{Float64},2},V::Array{Complex{Float64},2},Xi::Array{Complex{Float64},2},Wt::Array{Complex{Float64},2},E::Float64,Ly::Int64,Nx::Int64,Wd::Float64,q::Int64)
+function get_LyapunovList(M::Array{Complex{Float64},2},V::Array{Complex{Float64},2},Xi::Array{Complex{Float64},2},Wt::Array{Complex{Float64},2},E::Float64,Ly::Int64,Nx::Int64,Wd::Float64,q::Int64)
 #   INITIALIZATIONS
 #  ==========================================
     N = size(M,1)
