@@ -6,9 +6,7 @@ The calculation is parallelized using Julia's `Distributed.pmap`, which dynamica
 
 Each job corresponds to a single parameter set:
 
-$
-(m, W, L_y)
-$
+$(m, W, L_y)$
 
 where:
 - `m` : system parameter
