@@ -1,42 +1,88 @@
+using Test
+using LyapunovExponents
 
 
-@everywhere function perform_testjob(job_index::Int64)
-        
-	worker_id = myid()
-        host_id = gethostname()
+@testset "LyapunovExponents.jl" begin
 
-        #job details
-        my_job = readdlm(string(dir_name,"/job_list.txt"),'\t',skipstart=1)[job_index,:]
-        jobID=Int64.(my_job[1])      
-        m=my_job[2]
-        W=my_job[3]
-        Ly=Int64.(my_job[4])
-        system_scale=Int64.(my_job[5])
-        Nx=system_scale*Ly
+    @testset "System parameters" begin
+
+        m = 2.0
+
+        J_x, J_y, M, ϵ, p, q = get_SystemParameters(m)
+
+        @test size(J_x) == (2,2)
+        @test size(J_y) == (2,2)
+        @test size(M) == (2,2)
+
+        @test q > 0
+        @test ϵ == 0.0
+
+    end
 
 
-       
-        start_time= now()
-        println("starting my job $(jobID) on $(host_id) at time $(start_time) ")
-       
+    @testset "Hopping matrix construction" begin
 
-        println("My (m,W,L,Nx,jobID) is ", m, " ", W," ", Ly," ",Nx," ",jobID)
-	
-        sleep(2);
+        m = 2.0
+        J_x, J_y, M, ϵ, p, q = get_SystemParameters(m)
 
-        finish_time= now()
-        println("Finished my job $(jobID) on $(host_id) at time $(finish_time) ")
-        
-        time_taken= Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(finish_time) - Dates.DateTime(start_time)))
+        Ly = 4
 
-        filename=string(dir_name,"/JOB_RUN_LOG.txt")
-        open(filename, "a") do f
-             write(f,"$(jobID)\t$m\t$W\t$(Ly)\t $(Nx)\t$(worker_id)\t$host_id\t $time_taken\n")
-        end 
+        J, V, Xi, Wt = assign_J(J_x,Ly)
 
-       
-        
-        
+        @test size(J) == (2*Ly,2*Ly)
+        @test size(V) == (2*Ly,Ly)
+        @test size(Xi) == (Ly,Ly)
+        @test size(Wt) == (Ly,2*Ly)
 
+    end
+
+
+    @testset "On-site matrix construction" begin
+
+        m = 2.0
+        J_x, J_y, M, ϵ, p, q = get_SystemParameters(m)
+
+        Ly = 4
+
+        Mclean = assign_M(M,J_y,Ly,p)
+
+        @test size(Mclean) == (2*Ly,2*Ly)
+
+    end
+
+
+    @testset "Lyapunov calculation small system" begin
+
+        m = 2.0
+        W = 0.1
+
+        Ly = 4
+        Nx = 20
+
+        J_x,J_y,M,ϵ,p,q = get_SystemParameters(m)
+
+        Mclean = assign_M(M,J_y,Ly,p)
+
+        J,V,Xi,Wt = assign_J(J_x,Ly)
+
+        λ_list,Q_prev,R = get_LyapunovList(
+            Mclean,
+            V,
+            Xi,
+            Wt,
+            ϵ,
+            Ly,
+            Nx,
+            W,
+            q
+        )
+
+        @test length(λ_list) == 2*Ly
+        @test size(Q_prev) == (2*Ly,2*Ly)
+        @test size(R) == (2*Ly,2*Ly)
+
+        @test all(isfinite, real(λ_list))
+
+    end
 
 end

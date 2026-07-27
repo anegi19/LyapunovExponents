@@ -8,7 +8,7 @@
 #----------------------------------------IMPORT LIBRARIES REQUIRED BY MASTER----------------------------------------------------------------
 
 
-using Distributed, ClusterManagers,DelimitedFiles,LinearAlgebra
+using Distributed, ClusterManagers, Dates
 
 
 
@@ -22,12 +22,10 @@ stop_index= parse(Int, ARGS[3])  #stop at job index
 #-------------------------------------STARTING GIVEN NUMBER OF WORKERS--------------------------------------------------------------------------------------------
 
 
-
-
 # one (m,W,Ly) = one job
 njobs= stop_index-start_index+1 #number of jobs
 
-
+println("Number of jobs: ", njobs)
 println("Starting ", nprocs, " workers for jobs: ",start_index ," to ",stop_index, "...")
 println("on CHEOPS CLUSTER :O!!\n")
 
@@ -40,34 +38,33 @@ println("Started ",nworkers()," workers.\n")
 
 #-------------------------------------------SETTING I/O Directory------------------------------------------------------------------------
 
-@everywhere dir_name= string(pwd())  #I/O directory= current working directory
+project_dir = dirname(@__DIR__)
+bin_dir = joinpath(project_dir, "bin")
 
-println(string("THE INPUT/OUTPUT directory is ",dir_name))
+#println("Project directory: ", project_dir)
+println("Data directory: ", bin_dir)
 
 
 #---------------------------------IMPORT FUNCTIONALITY REQUIRED @everywhere-----------------------------------------------------------------
 
 @everywhere pushfirst!(Base.DEPOT_PATH, "/tmp/test.cache") #important!
-@everywhere using Dates    
-@everywhere using LinearAlgebra
-@everywhere using DelimitedFiles
-@everywhere using Statistics
-@everywhere using Distributions
+@everywhere begin 
+	using Dates    
+	using LinearAlgebra
+	using DelimitedFiles
+	using Statistics
+	using Distributions
+	using LyapunovExponents
+	include(joinpath($project_dir,"scripts","perform_job.jl"))
+end
 
-include("FindLyapunov.jl") #from the project directory where main.jl is
-include("perform_job.jl")  #from the project directory where main.jl is
-include("System_parameters.jl")  #from the project directory where main.jl is
-#include(string(dir_name,"/System_parameters.jl")) # from the I/O directory
 
 #--------------------------------------DO JOBS!!!!!!------------------------------------------------------------------------------
 
 #creating directories for outputs
-try
-	mkdir(string(dir_name,"/l_list"))
-	mkdir(string(dir_name,"/Q_prev"))
-	mkdir(string(dir_name,"/R"))
-catch;
-end
+mkpath(joinpath(bin_dir,"l_list"))
+mkpath(joinpath(bin_dir,"Q_prev"))
+mkpath(joinpath(bin_dir,"R"))
 
 #--------------------------------------DISTRIBUTE JOBS TO WORKERS----------------------------------------------------------------------
 
@@ -75,7 +72,8 @@ starting_at=now()
 
 #Using "pmap" to distribute jobs among workers------------->
 
-pmap(perform_job,start_index:stop_index);
+pmap(job -> perform_job(job, bin_dir),
+     start_index:stop_index)
 
 stopping_at=now()
 time_diff= Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(stopping_at) - Dates.DateTime(starting_at)))

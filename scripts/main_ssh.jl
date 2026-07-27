@@ -8,24 +8,33 @@
 #----------------------------------------IMPORT LIBRARIES REQUIRED BY MASTER----------------------------------------------------------------
 
 
-using Distributed, ClusterManagers,DelimitedFiles,LinearAlgebra
-
+using Distributed, ClusterManagers, Dates
 #-----------------------------------------DEFINE MASTER FUNCTIONS--------------------------------------------------------------------------------------
 
-#=
-Function to start 'nprocs' processes on 'machines'
-=#
+"""
+    start_workers(nprocs, machines)
 
+Start `nprocs` Julia workers distributed over the available SSH machines.
+"""
 function start_workers(nprocs, machines)
-j=1
-for i in 1:nprocs
-   if(j>length(machines)) 
-     j=1
+
+    j = 1
+
+    for i in 1:nprocs
+
+        if j > length(machines)
+            j = 1
+        end
+
+        params = (
+            exename=`nice -19 /vol/thp/share/julia-1.0.0-x86_64/bin/julia`,
+            dir=pwd()
+        )
+
+        addprocs([(machines[j], 1)]; params...)
+
+        j += 1
     end
-   params = (exename=`nice -19 /vol/thp/share/julia-1.0.0-x86_64/bin/julia `, dir= string(pwd()) )
-   addprocs([(machines[j], 1)]; params...) #NOTE: SSH Manager is automatically called when you call addprocs() with an array
-   j=j+1
- end
 
 end
 
@@ -56,23 +65,27 @@ println("Started ",nworkers()," workers.\n")
 
 #-------------------------------------------SETTING I/O Directory------------------------------------------------------------------------
 
-@everywhere dir_name= string(pwd())  #I/O directory= current working directory
+project_dir = dirname(@__DIR__)
+bin_dir = joinpath(project_dir, "bin")
 
-println(string("THE INPUT/OUTPUT directory is ",dir_name))
+println("Data directory: ", bin_dir)
+
 
 #---------------------------------IMPORT FUNCTIONALITY REQUIRED @everywhere-----------------------------------------------------------------
 
-@everywhere pushfirst!(Base.DEPOT_PATH, "/tmp/test.cache") #important!
-@everywhere using Dates    
-@everywhere using LinearAlgebra
-@everywhere using DelimitedFiles
-@everywhere using Statistics
-@everywhere using Distributions
+@everywhere begin
 
-include("FindLyapunov.jl") #from the project directory where main.jl is
-include("perform_job.jl")  #from the project directory where main.jl is
-include("System_parameters.jl")  #from the project directory where main.jl is
-#include(string(dir_name,"/System_parameters.jl")) # from the I/O directory
+    using Dates
+    using DelimitedFiles
+    using LinearAlgebra
+    using Statistics
+    using Distributions
+
+    using LyapunovExponents
+     
+    include(joinpath(project_dir,"scripts","perform_job.jl"))
+
+end
 
 #--------------------------------------DO JOBS!!!!!!------------------------------------------------------------------------------
 
@@ -93,7 +106,8 @@ starting_at=now()
 
 #Using "pmap" to distribute jobs among workers------------->
 
-pmap(perform_job,start_index:stop_index);
+pmap(job -> perform_job(job, bin_dir),
+     start_index:stop_index)
 
 stopping_at=now()
 time_diff= Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(stopping_at) - Dates.DateTime(starting_at)))
