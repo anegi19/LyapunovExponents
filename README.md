@@ -23,11 +23,24 @@ The longitudinal system size is defined as:
 N_x = \mathrm{scale} \times L_y
 \]
 
+---
+## Results
 
 <p align="center">
-  <img src="imgs/QWZ_model.png" width="600">
+  <img src="imgs/QWZ_model.png" width="800">
 </p>
 
+<p align="center">
+  <img src="imgs/Slide3.png" width="800">
+</p>
+
+<p align="center">
+  <img src="imgs/Slide4.png" width="800">
+</p>
+
+<p align="center">
+  <img src="imgs/Slide5.png" width="800">
+</p>
 ---
 
 ## Project Structure
