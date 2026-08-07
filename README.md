@@ -31,15 +31,15 @@ N_x = \mathrm{scale} \times L_y
 </p>
 
 <p align="center">
-  <img src="imgs/Slide3.png" width="800">
+  <img src="imgs/Slide3.PNG" width="800">
 </p>
 
 <p align="center">
-  <img src="imgs/Slide4.png" width="800">
+  <img src="imgs/Slide4.PNG" width="800">
 </p>
 
 <p align="center">
-  <img src="imgs/Slide5.png" width="800">
+  <img src="imgs/Slide5.PNG" width="800">
 </p>
 ---
 
