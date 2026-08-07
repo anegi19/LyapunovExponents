@@ -7,21 +7,18 @@ The calculation is parallelised using Julia's `Distributed.pmap`, which dynamica
 
 Each job corresponds to a single parameter set:
 
-\[
-(m, W, L_y)
-\]
+`(m, W, L_y)`
 
 where:
 
 - `m` : system parameter
 - `W` : disorder strength
-- `Ly` : transverse system size
+- `L_y` : transverse system size
 
 The longitudinal system size is defined as:
 
-\[
-N_x = \mathrm{scale} \times L_y
-\]
+
+$N_x = \mathrm{scale} \times L_y$
 
 ---
 ## Results
@@ -41,6 +38,7 @@ N_x = \mathrm{scale} \times L_y
 <p align="center">
   <img src="imgs/Slide5.PNG" width="800">
 </p>
+
 ---
 
 ## Project Structure
@@ -295,9 +293,8 @@ Computes the Lyapunov spectrum using:
 
 Defines model-specific matrices:
 
-\[
-J_x, J_y, M
-\]
+
+$ J_x, J_y, M $
 
 and numerical parameters.
 
