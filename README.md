@@ -129,46 +129,33 @@ By scanning the disorder strength ($W$) and the mass parameter ($m$), we map out
 
 ```
 LyapunovExponents/
-│
-├── Project.toml
-├── README.md
-│
-├── src/
+├── src/                 # Core implementation
 │   ├── LyapunovExponents.jl
 │   ├── hopping.jl
 │   ├── transfer_matrix.jl
 │   └── System_parameters.jl
 │
-├── scripts/
+├── scripts/             # Execution scripts
 │   ├── main_cheops.jl
 │   ├── main_ssh.jl
 │   └── perform_job.jl
 │
-├── jobs/
-│   ├── create_jobs_cheops.jl
-│   └── create_jobs_ssh.jl
-│
-├── bin/
-│   └── job_list.txt
-│
-└── test/
-    └── runtests.jl
+├── jobs/                # Job generation scripts
+├── bin/                 # Input/output data
+├── test/                # Package tests
+├── Project.toml
+└── README.md
 ```
 
 ---
 
 # Installation
 
-Clone the repository:
+Clone and activate the Julia environment:
 
 ```bash
 git clone <repository-url>
 cd LyapunovExponents
-```
-
-Activate the Julia environment:
-
-```bash
 julia --project=.
 ```
 
@@ -181,52 +168,33 @@ Pkg.instantiate()
 
 ---
 
-# Creating Jobs
+# Running Calculations
 
-Jobs are defined in `job_list.txt`.
-
-Each row corresponds to one independent calculation:
+Calculations are performed for independent parameter sets:
 
 ```
-jobID    m       W       Ly      scale
-1        2.0     5.9     20      100000
-2        2.0     6.0     20      100000
-...
+(jobID, m, W, Ly, scale)
 ```
 
-The job list can be generated using:
-
-```
-jobs/create_jobs_cheops.jl
-```
-
-or:
-
-```
-jobs/create_jobs_ssh.jl
-```
-
-The generated file is stored in:
+stored in:
 
 ```
 bin/job_list.txt
 ```
 
----
-
-# Running Calculations
-
-## CHEOPS Cluster (SLURM)
-
-Generate the job list and SLURM submission scripts:
+A job list can be generated using:
 
 ```bash
 julia --project=. jobs/create_jobs_cheops.jl
 ```
 
-Submit the generated SLURM scripts.
+or
 
-Each SLURM task runs:
+```bash
+julia --project=. jobs/create_jobs_ssh.jl
+```
+
+Run calculations locally or on a cluster using:
 
 ```bash
 julia --project=. scripts/main_cheops.jl \
@@ -235,119 +203,62 @@ julia --project=. scripts/main_cheops.jl \
      stop_job_index
 ```
 
-where:
-
-- `num_workers` = number of Julia workers created
-- `start_job_index` = first job index
-- `stop_job_index` = last job index
-
 Example:
 
 ```bash
 julia --project=. scripts/main_cheops.jl 8 1 100
 ```
 
-This runs jobs `1`–`100` using 8 workers.
+runs jobs 1–100 using 8 Julia workers.
 
----
-
-## SSH Cluster
-
-For SSH-based distributed calculations:
+For SSH-based clusters:
 
 ```bash
-julia --project=. scripts/main_ssh.jl \
-     num_workers \
-     start_job_index \
-     stop_job_index
+julia --project=. scripts/main_ssh.jl num_workers start_job_index stop_job_index
 ```
-
-The available machines are supplied through the SSH worker configuration.
 
 ---
 
 # Output
 
-Results are written inside the `bin/` directory.
-
-After a calculation:
+Results are stored in `bin/`:
 
 ```
 bin/
-│
 ├── l_list/
-│   └── lyaps_<jobID>
-│
+│   └── lyaps_<jobID>     # Lyapunov spectrum
 ├── Q_prev/
-│   └── Qprev_<jobID>
-│
+│   └── Qprev_<jobID>     # Final Q matrix
 ├── R/
-│   └── R_<jobID>
-│
-└── JOB_RUN_LOG.txt
+│   └── R_<jobID>         # Final R matrix
+└── JOB_RUN_LOG.txt       # Execution log
 ```
 
-## Lyapunov Spectrum
+The Lyapunov spectrum contains:
 
-The file:
+$$
+\lambda_1,\lambda_2,\ldots,\lambda_{2r}
+$$
 
-```
-l_list/lyaps_<jobID>
-```
-
-contains the Lyapunov spectrum:
-
-\[
-\lambda_1,\lambda_2,\dots,\lambda_{2r}
-\]
-
-for the corresponding `(m, W, Ly)` parameter set.
-
-## QR Data
-
-The files:
-
-```
-Q_prev/
-R/
-```
-
-store the final QR decomposition matrices used during transfer-matrix iteration.
+for each parameter set ((m,W,L_y)).
 
 ---
 
 # Parallelisation
 
-The project uses:
+Independent jobs are distributed dynamically using Julia's:
 
 ```julia
 Distributed.pmap
 ```
 
-Jobs are dynamically assigned to workers:
-
-```julia
-pmap(job -> perform_job(job, bin_dir),
-     start_index:stop_index)
-```
-
 Each worker:
 
-1. Reads one row from `job_list.txt`
-2. Constructs the system matrices
-3. Calculates the Lyapunov spectrum
-4. Writes output files
-5. Records execution information in `JOB_RUN_LOG.txt`
-
----
-
-# Testing
-
-Run the package tests:
-
-```bash
-julia --project=. -e "using Pkg; Pkg.test()"
-```
+1. Reads a parameter set from `job_list.txt`
+2. Constructs the model matrices
+3. Computes the transfer matrix
+4. Extracts the Lyapunov spectrum
+5. Saves the results
 
 ---
 
@@ -355,38 +266,40 @@ julia --project=. -e "using Pkg; Pkg.test()"
 
 ### `hopping.jl`
 
-Constructs:
-
-- hopping matrices
-- clean onsite matrices
-- block structures for the supercell
-
----
+Constructs hopping and onsite matrices and supercell blocks.
 
 ### `transfer_matrix.jl`
 
-Computes the Lyapunov spectrum using:
+Implements the transfer-matrix calculation, including:
 
-- Green function construction
-- transfer matrix iteration
-- QR decomposition stabilisation
-
----
+* Green-function construction
+* transfer-matrix iteration
+* QR stabilization
+* Lyapunov-spectrum extraction
 
 ### `System_parameters.jl`
 
-Defines model-specific matrices:
+Defines model-specific parameters and matrices:
 
-
-$ J_x, J_y, M $
-
-and numerical parameters.
+$$
+J_x,\qquad J_y,\qquad M
+$$
 
 ---
 
+# Testing
+
+Run:
+
+```bash
+julia --project=. -e "using Pkg; Pkg.test()"
+```
+
+
 # Authors
 
-Ankita Negi, Vatsal Dwivedi
+- **Ankita Negi**
+- **Vatsal Dwivedi**
 
 Institute of Theoretical Physics, University of Cologne (2019)
 
